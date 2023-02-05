@@ -3,6 +3,8 @@ title: "Unit 6 Overall"
 author: "Bivin"
 date: "5/1/2019"
 output: html_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 ```{r setup, include=FALSE}
@@ -18,6 +20,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(class)
 library(caret)
 library(e1071)
+library(tidyverse)
 
 # Simple Example Credit Rating as a Function of income and debt
 
@@ -29,7 +32,7 @@ dfTrain %>% ggplot(aes(x = CreditRating, y = income, color = Qualify)) + geom_po
 
 dfTest = data.frame(income = 92, CreditRating = 694)
 
-knn(dfTrain[,1:2], dfTest, dfTrain$Qualify, k = 5, prob = TRUE)
+knn(dfTrain[,1:2], dfTest, dfTrain$Qualify, k = 9, prob = TRUE)
 ```
 
 
@@ -37,7 +40,9 @@ knn(dfTrain[,1:2], dfTest, dfTrain$Qualify, k = 5, prob = TRUE)
 ```{r}
 irisVersVirg = iris %>% filter(Species == "versicolor" | Species == "virginica")
 
-df = data.frame(Sepal.Length = 6.20 , Sepal.Width = 2.80 )
+irisVersVirg %>% ggplot(aes(x = Sepal.Length, y = Sepal.Width, color = Species)) + geom_point()
+   
+df = data.frame(Sepal.Length = 6.2, Petal.length = 4.9)
 knn(irisVersVirg[,c(1,2)], df, irisVersVirg$Species, k = 5, prob = TRUE)
 knn(irisVersVirg[,c(1,2)], df, irisVersVirg$Species, k = 15, prob = TRUE)
 ```
@@ -55,13 +60,17 @@ irisVersVirg = droplevels(irisVersVirg,exclude = "setosa")
 summary(irisVersVirg)
 
 trainIndices = sample(1:dim(irisVersVirg)[1],round(splitPerc * dim(irisVersVirg)[1]))
+#trainIndices
 train = irisVersVirg[trainIndices,]
+dim(train)
 test = irisVersVirg[-trainIndices,]
+dim(test)
 
 irisVersVirg %>% ggplot(aes(x = Sepal.Length,Sepal.Width,color = Species)) + geom_point()
 
 # k = 3
-classifications = knn(train[,c(1,2)],test[,c(1,2)],train$Species, prob = TRUE, k = 3)
+classifications = knn(train[,c(1,2)],test[,c(1,2)],train$Species, prob = TRUE, k = 5)
+classifications
 table(classifications,test$Species)
 confusionMatrix(table(classifications,test$Species))
 
@@ -101,14 +110,14 @@ plot(accs$k,accs$accuracy, type = "l", xlab = "k")
 
 # Loop for many k and the average of many training / test partition
 ```{r}
-iterations = 500
-numks = 30
+iterations = 100
+numks = 100
 
 masterAcc = matrix(nrow = iterations, ncol = numks)
   
 for(j in 1:iterations)
 {
-accs = data.frame(accuracy = numeric(30), k = numeric(30))
+accs = data.frame(accuracy = numeric(30), k = numeric(10))
 trainIndices = sample(1:dim(irisVersVirg)[1],round(splitPerc * dim(irisVersVirg)[1]))
 train = irisVersVirg[trainIndices,]
 test = irisVersVirg[-trainIndices,]
@@ -126,6 +135,27 @@ MeanAcc = colMeans(masterAcc)
 
 plot(seq(1,numks,1),MeanAcc, type = "l")
 ```
+
+```{r}
+Emails = data.frame(Predicted = c("Spam","Ham","Ham", "Ham", "Ham", "Spam", "Ham", "Spam", "Ham", "Spam"), Actual = c("Spam", "Spam", "Ham", "Ham", "Spam", "Ham", "Spam","Ham","Spam","Spam" ))
+
+table(Emails)
+```
+
+```{r}
+df = data.frame(income = c(34,67,70,110,89,90,102,104,110,120,170),
+CreditRating = c(750,680,670,675,710,690,715,720,650,710,720),
+Qualify = c("Yes","No","No","Yes","No","No","Yes","Yes","No","Yes","Yes"), stringsAsFactors = TRUE)
+classifications = knn.cv(df[,1:2], df$Qualify, k = 3)
+classifications
+
+data.frame(classifications = classifications, true = df$Qualify)
+confusionMatrix(classifications,df$Qualify)
+```
+Error: `data` and `reference` should be factors with the same levels.
+
+
+
 
 #Internal Cross Validation
 ```{r}
@@ -145,19 +175,22 @@ knn.cv(df[,1:2], df$Qualify, k = 3)
 
 dfTrain = data.frame(income = c(34000,67000,70000,110000,89000,90000,102000,104000,110000,120000,170000), 
                            CreditRating = c(750,680,670,675,710,690,715,720,650,710,720), 
-                           Qualify = c("Yes","No","No","Yes","No","No","Yes","Yes","No","Yes","Yes"))
+                           Qualify = c("Yes","No","No","Yes","No","No","Yes","Yes","No","Yes","Yes"), stringsAsFactors = TRUE)
 
 classifications = knn.cv(dfTrain[,1:2],dfTrain$Qualify, k = 3)
 confusionMatrix(classifications,dfTrain$Qualify)
+
+dfTrain
 
 
 # Simple Example Credit Rating as a Function of income and debt ... Standardized
 
 dfTrain = data.frame(income = c(34,67,70,110,89,90,102,104,110,120,170), 
                            CreditRating = c(750,680,670,675,710,690,715,720,650,710,720), 
-                           Qualify = c("Yes","No","No","Yes","No","No","Yes","Yes","No","Yes","Yes"))
+                           Qualify = c("Yes","No","No","Yes","No","No","Yes","Yes","No","Yes","Yes"), stringsAsFactors = TRUE)
 
 dfZTrain = data.frame(Zincome = scale(dfTrain$income), ZCreditRating = scale(dfTrain$CreditRating), Qualify = dfTrain$Qualify)
+dfZTrain
 
 classifications = knn.cv(dfZTrain[,1:2],dfZTrain$Qualify, k = 3)
 confusionMatrix(classifications,dfTrain$Qualify)
@@ -184,10 +217,13 @@ confusionMatrix(classifications,dfTrain$Qualify)
 ```{r}
 #read in data Credit Default.csv
 credit = read.csv(file.choose(),header = TRUE)
+credit
 
 #make resposnse a factor rather than 0,1
 credit$default.payment.next.month = factor(credit$default.payment.next.month,labels = c("NoDefault","Default"))
 summary(credit)
+
+credit
 #plot the data
 credit %>% ggplot(aes(x = AGE, y = LIMIT_BAL,color = default.payment.next.month)) + geom_point()
 
@@ -196,6 +232,8 @@ credit %>% ggplot(aes(x = AGE, y = LIMIT_BAL,color = default.payment.next.month)
 #credit$Z_AGE = (credit$AGE-mean(credit$AGE))/sd(credit$AGE)
 credit$Z_Lim = scale(credit$LIMIT_BAL)
 credit$Z_AGE = scale(credit$AGE)
+
+credit
 
 #create training and test sets
 trainInd = sample(seq(1,30000,1), .8*30000)
@@ -225,6 +263,18 @@ confusionMatrix(table(classifications,credit$default.payment.next.month))
 
 ```
 
+```{r}
+#Iris Example Classification
+#Plot
+df = data.frame(Sepal.Length = 5.5 , Sepal.Width = 3.25 )
+#View(iris)
+classification <- knn.cv(iris[,c(1,2)], iris$Species, k = 50, prob = FALSE)
+confusionMatrix(classification, iris$Species)
+knn.cv(iris[,c(1,2)], df, iris$Species, k = 25, prob = TRUE)
+```
+
+
+
 
 
 #Multinomial Example: Iris Data
@@ -247,9 +297,9 @@ knn(iris[,c(1,2)], df, iris$Species, k = 15, prob = TRUE)
 
 # Archeology
 ```{r}
-pottery = read.csv(file.choose(),header = TRUE)
+pottery = read.csv(file.choose(),header = TRUE, sep = ",", dec = ".")
 pottery
-confusionMatrix(table(knn.cv(pottery[,1:5],pottery$Site, k = 3), pottery$Site))
+confusionMatrix(table(knn.cv(pottery[,1:5],pottery$Site, k = 9), pottery$Site))
 QOI = data.frame(Al = 21, Fe = 6.7, Mg = 4.9, Ca = 0.10, Na = 0.11)
 knn(pottery[,1:5],QOI,pottery$Site, prob = TRUE, k = 3)
 knn(pottery[,1:5],QOI,pottery$Site, prob = TRUE, k = 5)

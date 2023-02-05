@@ -1,0 +1,10 @@
+1. In the function sample(), what does "replacement" do?
+2. What is the difference between internal and external evaluation in K-NN
+3. Is the model below set up correctly?  The accuracy increased at k = 50 but the answer was decreased.  Why?
+
+df = data.frame(Sepal.Length = 5.5 , Sepal.Width = 3.25 )
+#View(iris)
+classification <- knn.cv(iris[,c(1,2)], iris$Species, k = 50, prob = FALSE)
+confusionMatrix(classification, iris$Species)
+
+4. 
