@@ -1,0 +1,163 @@
+---
+title: "Todd_Garner_DS6306_Week6_Part2"
+author: "Todd Garner"
+date: "2023-02-07"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Part 2 - Question a. - **For the full (multinomial) IRIS data (the iris dataset in R), do a 70-30 train/test cross validation with k =1 - 90 and use sepal length and width as predictors.  Make a plot of k (xaxis) versus accuracy.  Use this plot to tune the hyperparameter k.  What do you feel is the best value of k?**
+
+This reminds me of the example in the Week 6 lectures.  So, I will start from that example and modify to the desired result.  I first need to divide the data set into 70/30 train/test sizes.  
+
+```{r}
+library(tidyverse)
+iris
+View(iris)
+splitPerc = .70
+#iris_all = iris %>% filter(Species == "versicolor" | Species == "virginica")
+train_init = sample(1:dim(iris)[1],round(splitPerc * dim(iris)[1]))
+train = iris[train_init,]
+test = iris[-train_init,]
+```
+So far, so good.  This next piece looks pretty complicated so I'm going to think it through before I launch into it.  Looking at the raw, unmodified example code, the variable "accs" doesn't appear to do anything.  I see it now on the prior page of the example.  This gives me pause to walk through the entirety of the code so I can make sure I know what I'm doing....and, what I'm driving to solve!
+
+
+
+```{r}
+iris
+library(class)
+library(FNN)
+library(caret)
+#library(InformationValue)
+#install.packages("ISLR")
+library(ISLR)
+#tinytex::install_tinytex()
+#install.packages("pdflatex")
+#library(pdflatex)
+set.seed(6)
+splitPerc = .70
+#irisLenWid = iris %>% filter(Species == "versicolor" | Species == "virginica")
+#summary(irisVersVirg)
+#irisVersVirg = droplevels(irisVersVirg,exclude = "setosa")
+#summary(irisVersVirg)
+trainIndices = sample(1:dim(iris)[1],round(splitPerc * dim(iris)[1]))
+train = iris[trainIndices,]
+test = iris[-trainIndices,]
+iris %>% ggplot(aes(x = Sepal.Length,Sepal.Width,color = Species)) + geom_point()
+View(train$Species)
+
+# k = 5
+classifications = knn(train[,c(1,2)],test[,c(1,2)],train$Species, prob = TRUE, k = 5)
+table(test$Species,classifications)
+confusionMatrix(table(test$Species,classifications))
+
+accs = data.frame(accuracy = numeric(30), k = numeric(30))
+trainIndices = sample(1:dim(iris)[1],round(splitPerc *
+dim(iris)[1]))
+train = iris[trainIndices,]
+test = iris[-trainIndices,]
+
+nrow(train)
+for(i in 1:30)
+{
+classifications = knn(train[,c(1,2)],test[,c(1,2)],train$Species, prob = TRUE, k = i)
+table(test$Species,classifications)
+CM = confusionMatrix(table(test$Species,classifications))
+accs$accuracy[i] = CM$overall[1]
+accs$k[i] = i
+}
+plot(accs$k,accs$accuracy, type = "l")
+```
+It would appear that k = 15 is the correct k value.  Looking back to the Part 1 example, the number of rows in the training set is 105.  The square root of 105 is 10.24.  Not exactly k = 15.  Perhaps the square root is useful when we have really large data sets.  Comments are for the code above.  I'll now change k to 15 and rerun the entire chunk.  I can't help but think I'm missing something as the question says to use Sepal.Length and Sepal.Width as predictors.  In the classifications definition above, I'm pulling those two columns out and comparing it against train$Species.  I'm going to revert back to k = 5 and rerun the model above and copy and past the code and run k=15 below.  
+
+```{r}
+iris
+
+set.seed(6)
+splitPerc = .70
+#irisLenWid = iris %>% filter(Species == "versicolor" | Species == "virginica")
+#summary(irisVersVirg)
+#irisVersVirg = droplevels(irisVersVirg,exclude = "setosa")
+#summary(irisVersVirg)
+trainIndices = sample(1:dim(iris)[1],round(splitPerc * dim(iris)[1]))
+train = iris[trainIndices,]
+test = iris[-trainIndices,]
+iris %>% ggplot(aes(x = Sepal.Length,Sepal.Width,color = Species)) + geom_point()
+View(train$Species)
+
+# k = 5
+classifications = knn(train[,c(1,2)],test[,c(1,2)],train$Species, prob = TRUE, k = 15)
+table(test$Species,classifications)
+confusionMatrix(table(test$Species,classifications))
+
+accs = data.frame(accuracy = numeric(30), k = numeric(30))
+trainIndices = sample(1:dim(iris)[1],round(splitPerc *
+dim(iris)[1]))
+train = iris[trainIndices,]
+test = iris[-trainIndices,]
+
+nrow(train)
+for(i in 1:30)
+{
+classifications = knn(train[,c(1,2)],test[,c(1,2)],train$Species, prob = TRUE, k = i)
+table(test$Species,classifications)
+CM = confusionMatrix(table(test$Species,classifications))
+accs$accuracy[i] = CM$overall[1]
+accs$k[i] = i
+}
+plot(accs$k,accs$accuracy, type = "l")
+```
+## Part 2 - Question a.1 - **What do you feet is the best value of k?**
+
+When I ran the model at k=5, the graph showed a clear peak at k=15.  When I run the same graph with k=15, there are multiple peaks.  Candidly, I don't know what to make of that.  It leaves questions unanswered.  
+
+## BONUS QUESTION:  **Repeat the above analysis with a leave one out cross-validation**
+
+This would be utilizing the knn.cv() function.  Let's see what we can make of this.  
+
+```{r}
+iris
+set.seed(6)
+splitPerc = .70
+#irisLenWid = iris %>% filter(Species == "versicolor" | Species == "virginica")
+#summary(irisVersVirg)
+#irisVersVirg = droplevels(irisVersVirg,exclude = "setosa")
+#summary(irisVersVirg)
+trainIndices = sample(1:dim(iris)[1],round(splitPerc * dim(iris)[1]))
+train = iris[trainIndices,]
+test = iris[-trainIndices,]
+iris %>% ggplot(aes(x = Sepal.Length,Sepal.Width,color = Species)) + geom_point()
+#View(train$Species)
+#View(train[,c(1,2,5)])
+#nrow(train[,c(1,2,5)])
+#View(train[c(1:2,5)])
+#nrow(train[c(1:2,5)])
+#View(Species)
+# k = 5
+classifications = knn.cv(iris[,c(1,2)],iris$Species, k = 15)
+table(classifications, iris$Species)
+confusionMatrix(table(classifications,iris$Species))
+accs = data.frame(accuracy = numeric(30), k = numeric(30))
+#trainIndices = sample(1:dim(iris)[1],round(splitPerc *
+#dim(iris)[1]))
+#train = iris[trainIndices,]
+#test = iris[-trainIndices,]
+
+nrow(train)
+for(i in 1:30)
+{
+classifications = knn.cv(iris[,c(1,2)],iris$Species, k = i)
+table(classifications, iris$Species)
+CM = confusionMatrix(table(classifications, iris$Species))
+accs$accuracy[i] = CM$overall[1]
+accs$k[i] = i
+}
+plot(accs$k,accs$accuracy, type = "l")
+```
+To utilize the "leave one out", there was a reasonable amount of the example code that was excluded.  However, through experimentation, I was able to get it to work.  It appears that k=10 is the correct numerical variable.  But, is that really useful?  In the leave one out methodology, one value is compared against all the rest.  I'm not sure k is a valuable number in this method.  
